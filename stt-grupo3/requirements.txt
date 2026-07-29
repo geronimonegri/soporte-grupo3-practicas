@@ -1,0 +1,12 @@
+# Comunes a todas las plataformas
+pynput
+sounddevice
+numpy
+pyperclip
+deep-translator
+
+# Motor de transcripción según la plataforma:
+#   macOS (Apple Silicon) -> MLX sobre la GPU del Mac
+mlx-whisper; sys_platform == "darwin"
+#   Windows / Linux -> faster-whisper (CPU o GPU NVIDIA)
+faster-whisper; sys_platform != "darwin"
