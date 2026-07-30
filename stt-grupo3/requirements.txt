@@ -3,7 +3,6 @@ pynput
 sounddevice
 numpy
 pyperclip
-deep-translator
 
 # Motor de transcripción según la plataforma:
 #   macOS (Apple Silicon) -> MLX sobre la GPU del Mac

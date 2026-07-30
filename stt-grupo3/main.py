@@ -1,8 +1,15 @@
-"""Traductor de voz express (STT + traducción) con Whisper + shortcut global.
+"""Asistente de voz simple: dictado + comandos (buscar en Google / escuchar en Spotify).
 
-Basado en el dictado por voz de ejemplo: F5 empieza a grabar; F5 de nuevo para,
-transcribe con Whisper y TRADUCE el texto (español -> inglés) antes de pegarlo
-donde tengas el foco (vía portapapeles + Cmd/Ctrl+V).
+Basado en el dictado por voz de ejemplo: F5 empieza a grabar; F5 de nuevo para y
+transcribe con Whisper. Según lo que dijiste, el programa hace una de estas 3 cosas:
+
+  - Si empezás la frase con "buscar" / "busca" / "buscame" -> abre Google con
+    una búsqueda de lo que dijiste después.
+  - Si empezás la frase con "escuchar" / "poner" -> abre Spotify (búsqueda) con
+    la canción que dijiste después. Si tenés la app instalada, se abre ahí
+    directo; si no, se abre en el navegador. Queda a un clic de reproducir.
+  - Si no dijiste ningún comando -> pega el texto tal cual donde tengas el
+    cursor (dictado normal), como el TP de ejemplo original.
 
 Motor de transcripción según la plataforma:
   - macOS (Apple Silicon): mlx-whisper sobre la GPU del Mac, usando los modelos
@@ -17,8 +24,11 @@ macOS: dar permisos de Accesibilidad y Micrófono a la terminal en
 
 import os
 import queue
+import re
 import sys
 import threading
+import webbrowser
+from urllib.parse import quote
 
 # Detectar plataforma: en Mac usamos MLX; en el resto, faster-whisper.
 IS_MAC = sys.platform == "darwin"
@@ -33,7 +43,6 @@ import sounddevice as sd
 import pyperclip
 from pynput import keyboard
 from pynput.keyboard import Controller, Key
-from deep_translator import GoogleTranslator
 
 # .env leído a mano (pocos valores) para no sumar python-dotenv.
 _env = os.path.join(os.path.dirname(__file__), ".env")
@@ -47,19 +56,54 @@ if os.path.exists(_env):
 SAMPLE_RATE = 16000  # whisper trabaja a 16kHz
 HOTKEY = keyboard.Key.f5
 
-# El modelo por defecto depende de la plataforma: en Mac, el repo MLX local;
-# en Windows/Linux, un tamaño de faster-whisper que descarga solo.
 _DEFAULT_MODEL = (
     "mlx-community/whisper-large-v3-turbo" if IS_MAC else "large-v3"
 )
 MODEL = os.environ.get("WHISPER_MODEL", _DEFAULT_MODEL)
-
-# Idioma de origen (lo que hablás) e idioma de destino (a lo que se traduce).
-SRC_LANG = os.environ.get("WHISPER_LANG") or "es"
-TARGET_LANG = os.environ.get("TARGET_LANG") or "en"
+LANG = os.environ.get("WHISPER_LANG") or "es"
 
 _kbd = Controller()
-_translator = GoogleTranslator(source=SRC_LANG, target=TARGET_LANG)
+
+# --- Comandos reconocidos al principio de la frase -----------------------
+# "buscar/busca/buscame algo"      -> Google
+# "escuchar/poner algo"            -> Spotify
+_BUSCAR_RE = re.compile(r"^\s*(buscar|busca|buscame)\s+(.+)", re.IGNORECASE)
+_ESCUCHAR_RE = re.compile(r"^\s*(escuchar|poner)\s+(.+)", re.IGNORECASE)
+
+
+def buscar_google(query):
+    url = f"https://www.google.com/search?q={quote(query)}"
+    webbrowser.open(url)
+
+
+def buscar_spotify(cancion):
+    # spotify: abre la app de escritorio directo en la búsqueda, si está instalada.
+    # Si no hay app asociada al esquema "spotify:", el sistema puede ignorarlo;
+    # por eso además abrimos el buscador web como respaldo.
+    webbrowser.open(f"spotify:search:{quote(cancion)}")
+    webbrowser.open(f"https://open.spotify.com/search/{quote(cancion)}")
+
+
+def procesar_texto(text):
+    """Decide qué hacer según el texto transcripto. Devuelve un mensaje para consola."""
+    m = _BUSCAR_RE.match(text)
+    if m:
+        query = m.group(2).strip()
+        buscar_google(query)
+        return f"🔎 Buscando en Google: {query!r}"
+
+    m = _ESCUCHAR_RE.match(text)
+    if m:
+        cancion = m.group(2).strip()
+        buscar_spotify(cancion)
+        return f"🎵 Abriendo en Spotify: {cancion!r}"
+
+    # Sin comando reconocido: dictado normal, pega el texto donde tengas el cursor.
+    if paste(text):
+        return "✔ Texto pegado en la app activa."
+    return ("✘ No se pudo pegar (¿falta permiso de Accesibilidad?). "
+            "El texto quedó en el portapapeles para pegar a mano.")
+
 
 # --- Motor de transcripción (se elige una vez, según la plataforma) -----------
 
@@ -68,38 +112,26 @@ if IS_MAC:
 
     def transcribe(audio):
         result = mlx_whisper.transcribe(
-            audio, path_or_hf_repo=MODEL, language=SRC_LANG
+            audio, path_or_hf_repo=MODEL, language=LANG
         )
         return result["text"]
 else:
     from faster_whisper import WhisperModel
 
-    # compute_type="int8" corre bien en CPU; en GPU NVIDIA se puede usar "float16".
     _model = WhisperModel(MODEL, compute_type="int8")
 
     def transcribe(audio):
-        segments, _ = _model.transcribe(audio, language=SRC_LANG)
+        segments, _ = _model.transcribe(audio, language=LANG)
         return "".join(seg.text for seg in segments)
-
-
-def translate(text):
-    """Traduce el texto de SRC_LANG a TARGET_LANG. Si falla, devuelve el original."""
-    try:
-        return _translator.translate(text)
-    except Exception as e:
-        print(f"(no se pudo traducir: {e})")
-        return text
 
 
 print(f"Plataforma: {'macOS (MLX)' if IS_MAC else sys.platform + ' (faster-whisper)'}")
 print(f"Modelo: {MODEL}")
-print(f"Traduciendo de '{SRC_LANG}' a '{TARGET_LANG}'.")
+print("Comandos: 'buscar <algo>' -> Google | 'escuchar <cancion>' -> Spotify")
 print(f"Listo. Pulsá {HOTKEY} para grabar/parar. Ctrl+C para salir.")
 
 _frames = queue.Queue()
 recording = False
-# Serializa el toggle: impide arrancar una grabación nueva mientras el hilo
-# anterior todavía está transcribiendo (los dos tocan _frames y `recording`).
 _lock = threading.Lock()
 
 
@@ -141,24 +173,15 @@ def toggle():
 
     audio = np.concatenate(chunks).flatten().astype(np.float32)
     text = transcribe(audio).strip()
-    print(f"→ Original: {text!r}")
+    print(f"→ {text!r}")
     if not text:
         return
 
-    translated = translate(text).strip()
-    print(f"→ Traducido: {translated!r}")
-
-    if paste(translated):
-        print("✔ Traducción pegada en la app activa.")
-    else:
-        print("✘ No se pudo pegar (¿falta permiso de Accesibilidad?). "
-              "La traducción quedó en el portapapeles para pegar a mano.")
+    resultado = procesar_texto(text)
+    print(resultado)
 
 
 def _toggle_locked():
-    # El lock asegura que un toggle termine (incluida la transcripción) antes
-    # de que otro F5 arranque una grabación nueva. Evita que dos hilos se pisen
-    # sobre _frames y `recording`.
     if not _lock.acquire(blocking=False):
         print("… ocupado, esperá a que termine.")
         return
@@ -170,11 +193,9 @@ def _toggle_locked():
 
 def on_press(key):
     if key == HOTKEY:
-        # transcribir en otro hilo para no bloquear el listener de teclado
         threading.Thread(target=_toggle_locked, daemon=True).start()
 
 
-# stream de micrófono siempre abierto; el flag `recording` decide si guardamos
 with sd.InputStream(samplerate=SAMPLE_RATE, channels=1, callback=_callback):
     with keyboard.Listener(on_press=on_press) as listener:
         listener.join()
