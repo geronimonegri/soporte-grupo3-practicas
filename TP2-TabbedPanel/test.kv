@@ -1,0 +1,154 @@
+TabbedPanel:
+    size_hint: 1, 1
+    do_default_tab: False
+
+    TabbedPanelItem:
+        text: 'Pestaña 1'
+        BoxLayout:
+            orientation: 'vertical'
+            Label:
+                text: 'Bienvenidos a soporte a la\ngestión de datos con\nprogramación visual'
+                font_size: 22
+                color: 0.2, 0.6, 1, 1
+                halign: 'center'
+                valign: 'middle'
+                text_size: self.size
+            Label:
+                text: 'Seleccioná una pestaña para continuar.'
+                color: 0.3, 0.3, 0.3, 1
+            Widget:
+                size_hint_y: 1
+
+    TabbedPanelItem:
+        text: 'Pestaña 2'
+        BoxLayout:
+            orientation: 'vertical'
+            padding: 20
+            spacing: 12
+            Label:
+                text: 'contenido tab2'
+                size_hint_y: None
+                height: 40
+            Label:
+                id: contador_label
+                text: '0'
+                font_size: 48
+                size_hint_y: None
+                height: 80
+                halign: 'center'
+                text_size: self.size
+                color: 0.2, 0.6, 1, 1
+            BoxLayout:
+                orientation: 'horizontal'
+                size_hint_y: None
+                height: 44
+                spacing: 10
+                Button:
+                    text: '-'
+                    font_size: 28
+                    background_color: 1, 0.3, 0.3, 1
+                    on_press:
+                        contador_label.text = str(int(contador_label.text) - 1)
+                Button:
+                    text: '+'
+                    font_size: 28
+                    background_color: 0.2, 0.8, 0.4, 1
+                    on_press:
+                        contador_label.text = str(int(contador_label.text) + 1)
+            Button:
+                text: 'Reset'
+                size_hint_y: None
+                height: 44
+                background_color: 0.5, 0.5, 0.5, 1
+                on_press:
+                    contador_label.text = '0'
+            Widget:
+                size_hint_y: 1
+
+    TabbedPanelItem:
+        text: 'Pestaña 3'
+        BoxLayout:
+            orientation: 'vertical'
+            padding: [10, 20, 20, 20]
+            spacing: 10
+            Label:
+                size_hint_y: None
+                text: 'Nombre'
+                height: 30
+                halign: 'left'
+                text_size: self.size
+            TextInput:
+                hint_text: 'Ingresá tu nombre'
+                size_hint_y: None
+                height: 40
+                multiline: False
+            Label:
+                text: 'Apellido'
+                size_hint_y: None
+                height: 30
+                halign: 'left'
+                text_size: self.size
+            TextInput:
+                hint_text: 'Ingresá tu apellido'
+                size_hint_y: None
+                height: 40
+                multiline: False
+            Widget:
+                size_hint_y: 1
+            Button:
+                text: 'Enviar'
+                size_hint_y: None
+                height: 44
+                background_color: 0.2, 0.6, 1, 1
+
+    TabbedPanelItem:
+        text: 'Pestaña 4'
+        BoxLayout:
+            orientation: 'vertical'
+            padding: [20, 20, 20, 20]
+            spacing: 16
+            Label:
+                text: 'Configuración de ejemplo'
+                font_size: 18
+                size_hint_y: None
+                height: 40
+                color: 0.2, 0.6, 1, 1
+                halign: 'left'
+                text_size: self.size
+            Label:
+                text: 'Volumen'
+                size_hint_y: None
+                height: 28
+                halign: 'left'
+                text_size: self.size
+                color: 0.3, 0.3, 0.3, 1
+            Slider:
+                min: 0
+                max: 100
+                value: 50
+                size_hint_y: None
+                height: 44
+            Label:
+                text: 'Modo oscuro'
+                size_hint_y: None
+                height: 28
+                halign: 'left'
+                text_size: self.size
+                color: 0.3, 0.3, 0.3, 1
+            Switch:
+                size_hint_y: None
+                height: 44
+                active: False
+            Label:
+                text: 'Notificaciones'
+                size_hint_y: None
+                height: 28
+                halign: 'left'
+                text_size: self.size
+                color: 0.3, 0.3, 0.3, 1
+            CheckBox:
+                size_hint_y: None
+                height: 44
+                active: True
+            Widget:
+                size_hint_y: 1
