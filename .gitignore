@@ -1,0 +1,15 @@
+# Entorno virtual
+venv/
+env/
+.venv/
+
+# Python
+__pycache__/
+*.pyc
+
+# Variables de entorno / claves
+.env
+
+# Base de datos y audios generados (datos locales, no código)
+conversaciones.db
+**/static/audio/*.mp3
