@@ -9,3 +9,6 @@ pyperclip
 mlx-whisper; sys_platform == "darwin"
 #   Windows / Linux -> faster-whisper (CPU o GPU NVIDIA)
 faster-whisper; sys_platform != "darwin"
+
+# $env:WHISPER_MODEL="tiny"
+#python -u main.py
