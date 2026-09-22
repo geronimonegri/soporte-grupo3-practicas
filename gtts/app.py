@@ -1,15 +1,10 @@
-import os
-import uuid
-
-from flask import Flask, render_template, request, send_from_directory
+import base64
+import io
+from flask import Flask, render_template, request
 from gtts import gTTS
 
 app = Flask(__name__)
 
-AUDIO_DIR = os.path.join(app.static_folder, "audio")
-os.makedirs(AUDIO_DIR, exist_ok=True)
-
-# Idiomas soportados por gTTS (código: nombre visible)
 IDIOMAS = {
     "es": "Español",
     "en": "Inglés",
@@ -22,36 +17,34 @@ IDIOMAS = {
 
 @app.route("/", methods=["GET", "POST"])
 def index():
-    audio_file = None
     texto = ""
     idioma = "es"
+    audio_base64 = None
+    error_msg = None
 
     if request.method == "POST":
         texto = request.form.get("texto", "").strip()
         idioma = request.form.get("idioma", "es")
-
         if texto:
-            nombre_archivo = f"{uuid.uuid4().hex}.mp3"
-            ruta_completa = os.path.join(AUDIO_DIR, nombre_archivo)
+            try:
+              
+                fp = io.BytesIO()
+                tts = gTTS(text=texto, lang=idioma)
+                tts.write_to_fp(fp)
+                fp.seek(0)
+                audio_data = base64.b64encode(fp.read()).decode("utf-8")
+                audio_base64 = f"data:audio/mp3;base64,{audio_data}"
 
-            tts = gTTS(text=texto, lang=idioma)
-            tts.save(ruta_completa)
-
-            audio_file = nombre_archivo
-
+            except Exception as e:
+                error_msg = f"Error al generar el audio: {str(e)}"
     return render_template(
         "index.html",
         idiomas=IDIOMAS,
-        audio_file=audio_file,
         texto=texto,
         idioma_seleccionado=idioma,
+        audio_base64=audio_base64,
+        error_msg=error_msg,
     )
-
-
-@app.route("/audio/<nombre_archivo>")
-def audio(nombre_archivo):
-    return send_from_directory(AUDIO_DIR, nombre_archivo)
-
 
 if __name__ == "__main__":
     app.run(debug=True)

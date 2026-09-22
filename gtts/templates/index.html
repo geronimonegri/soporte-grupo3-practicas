@@ -18,6 +18,12 @@
                     <div class="card-body p-4">
                         <h1 class="card-title text-center mb-4 h3">Convertir texto a voz</h1>
 
+                        {% if error_msg %}
+                            <div class="alert alert-danger" role="alert">
+                                {{ error_msg }}
+                            </div>
+                        {% endif %}
+
                         <form method="POST">
                             <div class="mb-3">
                                 <label for="idioma" class="form-label">Idioma</label>
@@ -38,6 +44,7 @@
                                     class="form-control"
                                     rows="5"
                                     placeholder="Escribí el texto que querés escuchar..."
+                                    required
                                 >{{ texto }}</textarea>
                             </div>
 
@@ -46,10 +53,10 @@
                             </div>
                         </form>
 
-                        {% if audio_file %}
+                        {% if audio_base64 %}
                             <div class="mt-4">
                                 <audio controls autoplay class="w-100">
-                                    <source src="{{ url_for('audio', nombre_archivo=audio_file) }}" type="audio/mpeg">
+                                    <source src="{{ audio_base64 }}" type="audio/mp3">
                                     Tu navegador no soporta el elemento de audio.
                                 </audio>
                             </div>
