@@ -1,4 +1,3 @@
-#VIDEO https://drive.google.com/file/d/1SzZOUE2RoGyOJsnPjHn1BvEOWGsL2bzO/view
 import cv2
 import numpy as np
 
@@ -173,4 +172,4 @@ def trackear_autos(video_path, ancho=800):
 
 if __name__ == "__main__":
     trackear_autos("12912796_2160_3840_30fps.mp4")
-
+    
